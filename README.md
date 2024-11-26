@@ -67,9 +67,9 @@ sudo apt-get upgrade
 
 Step 2: Installing WallCal
 
-	1.	Install Git:
+1. Install Git:
 
-sudo apt-get install git
+	sudo apt-get install git
 
 
 	2.	Install Node.js and npm:
