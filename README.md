@@ -1,5 +1,3 @@
-You are correct! The README can benefit from additional clarity, especially for beginners unfamiliar with coding, Raspberry Pi, or calendar integration. Here’s the improved README:
-
 WallCal: Raspberry Pi Digital Wall Calendar
 
 This guide will walk you through setting up a digital wall calendar using a Raspberry Pi Zero and a touch display. This step-by-step guide is designed for complete beginners.
