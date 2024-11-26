@@ -1,4 +1,4 @@
-import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, getDay, isToday, isSameMonth, startOfMonth, startOfWeek, isSameDay } from 'date-fns';
+import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, getDay, isToday, isSameMonth, startOfMonth, startOfWeek, isSameDay, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface CalendarProps {
@@ -13,36 +13,16 @@ interface CalendarProps {
     color: string;
     enabled: boolean;
   }>;
+  events: Array<{
+    id: string;
+    title: string;
+    startDate: Date;
+    endDate: Date;
+    description?: string;
+    location?: string;
+    calendarId: string;
+  }>;
 }
-
-interface Event {
-  id: string;
-  title: string;
-  date: Date;
-  calendar: string;
-}
-
-// Mock events data
-const events: Event[] = [
-  {
-    id: '1',
-    title: 'Team Meeting',
-    date: new Date(),
-    calendar: 'Work'
-  },
-  {
-    id: '2',
-    title: 'Dentist',
-    date: new Date(),
-    calendar: 'Personal'
-  },
-  {
-    id: '3',
-    title: 'Birthday Party',
-    date: addDays(new Date(), 2),
-    calendar: 'Family'
-  }
-];
 
 export function Calendar({
   mode,
@@ -50,101 +30,85 @@ export function Calendar({
   onSelect,
   className,
   view,
-  calendars
+  calendars,
+  events,
 }: CalendarProps) {
-  const enabledCalendars = calendars.filter(cal => cal.enabled).map(cal => cal.name);
-  const filteredEvents = events.filter(event => enabledCalendars.includes(event.calendar));
+  const today = new Date();
 
-  const currentDate = selected || new Date();
-  
-  const getDaysToDisplay = () => {
-    if (view === 'month') {
-      const firstDayOfMonth = startOfMonth(currentDate);
-      const lastDayOfMonth = endOfMonth(currentDate);
+  const getEventsForDate = (date: Date) => {
+    return events.filter(event => {
+      const calendar = calendars.find(cal => cal.id === event.calendarId);
+      if (!calendar?.enabled) return false;
       
-      const startDate = startOfWeek(firstDayOfMonth);
-      const endDate = endOfWeek(lastDayOfMonth);
-
-      return eachDayOfInterval({ start: startDate, end: endDate });
-    } else {
-      const startDate = startOfWeek(currentDate);
-      const endDate = endOfWeek(currentDate);
-
-      return eachDayOfInterval({ start: startDate, end: endDate });
-    }
+      return isWithinInterval(date, {
+        start: new Date(event.startDate),
+        end: new Date(event.endDate)
+      });
+    });
   };
 
-  const days = getDaysToDisplay();
-  const weeks = Array.from(
-    { length: Math.ceil(days.length / 7) },
-    (_, i) => days.slice(i * 7, (i + 1) * 7)
-  );
+  const days = view === 'month'
+    ? eachDayOfInterval({
+        start: startOfWeek(startOfMonth(selected || today)),
+        end: endOfWeek(endOfMonth(selected || today))
+      })
+    : eachDayOfInterval({
+        start: startOfWeek(selected || today),
+        end: endOfWeek(selected || today)
+      });
 
   return (
-    <div className={cn("p-4", className)}>
-      <div className="grid grid-cols-7 h-full auto-rows-fr gap-px bg-border rounded-lg overflow-hidden">
-        {/* Day headers */}
+    <div className={cn("p-3", className)}>
+      <div className="grid grid-cols-7 gap-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
           <div
             key={day}
-            className="flex items-center justify-center bg-muted p-2 text-sm font-medium text-muted-foreground"
+            className="h-10 flex items-center justify-center text-sm font-medium"
           >
             {day}
           </div>
         ))}
-
-        {/* Calendar days */}
-        {weeks.map((week, weekIndex) =>
-          week.map((date, dayIndex) => {
-            const dayEvents = filteredEvents.filter(event => 
-              isSameDay(event.date, date)
-            );
-
-            const isSelected = selected && isSameDay(date, selected);
-            const isCurrentMonth = isSameMonth(date, currentDate);
-            const isPadding = view === 'month' && !isCurrentMonth;
-
-            return (
-              <button
-                key={date.toISOString()}
-                onClick={() => onSelect?.(date)}
+        
+        {days.map((day, dayIdx) => {
+          const dayEvents = getEventsForDate(day);
+          
+          return (
+            <div
+              key={day.toString()}
+              className={cn(
+                "min-h-[100px] p-2 relative border border-gray-200",
+                isToday(day) && "bg-blue-50",
+                !isSameMonth(day, selected || today) && view === 'month' && "text-gray-400 bg-gray-50",
+                "hover:bg-gray-100 cursor-pointer"
+              )}
+              onClick={() => onSelect?.(day)}
+            >
+              <time
+                dateTime={format(day, 'yyyy-MM-dd')}
                 className={cn(
-                  "relative h-full w-full flex flex-col items-stretch p-1 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
-                  isPadding && "bg-muted/50",
-                  !isPadding && "bg-background",
-                  isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
-                  isPadding && "text-muted-foreground",
-                  isToday(date) && !isSelected && "border-2 border-primary",
-                  view === 'week' && "min-h-[200px]"
+                  "ml-auto font-semibold",
+                  selected && isSameDay(day, selected) && "text-blue-600"
                 )}
               >
-                <span className={cn(
-                  "absolute top-1 right-1 text-sm",
-                  isSelected && "text-primary-foreground"
-                )}>
-                  {format(date, "d")}
-                </span>
-                <div className="mt-6 space-y-1">
-                  {dayEvents.map((event) => {
-                    const calendar = calendars.find(cal => cal.name === event.calendar);
-                    return (
-                      <div
-                        key={event.id}
-                        className="text-xs truncate rounded px-1 py-0.5"
-                        style={{ 
-                          backgroundColor: calendar?.color,
-                          color: 'white'
-                        }}
-                      >
-                        {event.title}
-                      </div>
-                    );
-                  })}
-                </div>
-              </button>
-            );
-          })
-        )}
+                {format(day, 'd')}
+              </time>
+              <div className="mt-2 space-y-1 max-h-[80px] overflow-y-auto">
+                {dayEvents.map(event => {
+                  const calendar = calendars.find(cal => cal.id === event.calendarId);
+                  return (
+                    <div
+                      key={event.id}
+                      className="text-xs p-1 rounded truncate"
+                      style={{ backgroundColor: calendar?.color + '20', color: calendar?.color }}
+                    >
+                      {event.title}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

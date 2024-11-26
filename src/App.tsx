@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { Calendar } from '@/components/Calendar/Calendar';
 import { CalendarHeader } from '@/components/Calendar/CalendarHeader';
-import { WeatherWidget } from '@/components/Calendar/WeatherWidget';
 import { UpcomingEvents } from '@/components/Calendar/UpcomingEvents';
 import { ThemeProvider } from '@/components/theme-provider';
 import { fetchICalEvents } from '@/lib/calendar';
@@ -36,17 +35,30 @@ export default function App() {
   const [view, setView] = useState<'month' | 'week'>('month');
   const [calendars, setCalendars] = useState(initialCalendars);
   const [icalUrl, setIcalUrl] = useState<string | null>(null);
+  const [events, setEvents] = useState<Array<{
+    id: string;
+    title: string;
+    startDate: Date;
+    endDate: Date;
+    description?: string;
+    location?: string;
+    calendarId: string;
+  }>>([]);
   const { toast } = useToast();
 
   const fetchEvents = useCallback(async () => {
     if (!icalUrl) return;
     
     try {
-      const events = await fetchICalEvents(icalUrl);
-      console.log('Calendar updated:', events.length, 'events');
+      const fetchedEvents = await fetchICalEvents(icalUrl);
+      setEvents(fetchedEvents.map(event => ({
+        ...event,
+        calendarId: '1', // Using Personal calendar for now
+      })));
+      console.log('Calendar updated:', fetchedEvents.length, 'events');
       toast({
         title: 'Calendar Updated',
-        description: `Successfully synced ${events.length} events`,
+        description: `Successfully synced ${fetchedEvents.length} events`,
       });
     } catch (error) {
       console.error('Failed to update calendar:', error);
@@ -112,9 +124,9 @@ export default function App() {
   return (
     <ThemeProvider defaultTheme="light">
       <div className="min-h-screen bg-white">
-        <div className="container mx-auto py-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-3">
+        <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-[2000px]">
+          <div className="flex flex-col space-y-6">
+            <div className="w-full">
               <CalendarHeader
                 date={date}
                 view={view}
@@ -129,16 +141,18 @@ export default function App() {
                 mode="single"
                 selected={date}
                 onSelect={setDate}
-                className="rounded-lg border shadow-sm"
+                className="rounded-lg border shadow-sm w-full"
                 calendars={calendars}
                 view={view}
+                events={events}
               />
             </div>
-            <div className="space-y-6">
-              <WeatherWidget />
+
+            <div className="w-full">
               <UpcomingEvents
                 calendars={calendars}
                 selectedDate={date}
+                events={events}
               />
             </div>
           </div>

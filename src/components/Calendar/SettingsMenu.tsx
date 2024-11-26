@@ -46,17 +46,17 @@ export function SettingsMenu({ onIcalConnect }: SettingsMenuProps) {
 
   const onSubmit = async (data: SettingsFormData) => {
     try {
-      // In a real app, you would validate the iCal URL and fetch the calendar data
       await onIcalConnect(data.icalUrl);
+      setOpen(false);
       toast({
         title: 'Calendar Connected',
-        description: 'Your iCal calendar has been successfully connected.',
+        description: 'Successfully connected to iCal calendar',
       });
-      setOpen(false);
+      form.reset();
     } catch (error) {
       toast({
         title: 'Connection Failed',
-        description: 'Failed to connect to the iCal calendar. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to connect to the calendar',
         variant: 'destructive',
       });
     }
@@ -78,12 +78,12 @@ export function SettingsMenu({ onIcalConnect }: SettingsMenuProps) {
           <DialogHeader>
             <DialogTitle>Calendar Settings</DialogTitle>
             <DialogDescription>
-              Connect your Apple iCal calendar to sync events
+              Connect your calendar by providing an iCal URL. This can usually be found in your calendar app's sharing settings.
             </DialogDescription>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="icalUrl"
@@ -91,22 +91,21 @@ export function SettingsMenu({ onIcalConnect }: SettingsMenuProps) {
                   <FormItem>
                     <FormLabel>iCal URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://calendar.google.com/calendar/ical/..." {...field} />
+                      <Input 
+                        placeholder="https://calendar.google.com/calendar/ical/..." 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormDescription>
-                      Enter your iCal calendar URL. You can find this in your Calendar app settings.
+                      Enter the iCal URL for your calendar. For Google Calendar, go to Settings &gt; [Calendar Name] &gt; Integrate calendar &gt; Secret address in iCal format
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <div className="flex justify-between items-center">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Connect Calendar</Button>
-              </div>
+              <Button type="submit" className="w-full">
+                Connect Calendar
+              </Button>
             </form>
           </Form>
 
